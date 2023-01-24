@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create EC2 instance
+
+Parameters:
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    # Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-arm64-ebs'
+    # Default: amzn2-ami-kernel-5.10-hvm-2.0.20221210.1-arm64-gp2
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2'
+  SshPublicKeyMaterial:
+    Type: String
+    Default: "# Place a public key here"
+    Description: "Create a key pair with ssh-keygen and pass the public key to this parameter"
+  MysqlUser:
+    Type: String
+    Default: "testuser"
+    Description: "Username created for demo"
+  MysqlPass:
+    Type: String
+    Default: "testpass"
+    Description: "Password created for demo"
+  MysqlDb:
+    Type: String
+    Default: "testdb"
+    Description: "DB name created for demo"
+                                                   
+Resources:
+  Ec2UserKeyPair:
+    Type: 'AWS::EC2::KeyPair'
+    Properties:
+      KeyName: SsmOverSsmKeyPair
+      PublicKeyMaterial: !Ref SshPublicKeyMaterial
+
+  # This instance will end up in a public subnet in a default VPC
+  SshOverSsmBastionInstance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref LatestAmiId
+      InstanceType: t4g.micro
+      IamInstanceProfile: !Ref SshOverSsmInstanceProfile
+      KeyName: !Ref Ec2UserKeyPair
+      Tags:
+        - Key: Name
+          Value: SshOverSsmBastionInstance
+
+  SshOverSsmMysqlInstance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref LatestAmiId
+      InstanceType: t4g.micro
+      IamInstanceProfile: !Ref SshOverSsmInstanceProfile
+      KeyName: !Ref Ec2UserKeyPair
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum install -y mariadb mariadb-server
+          systemctl enable mariadb
+          systemctl start mariadb
+          echo "CREATE DATABASE ${MysqlDb};"
+          echo "CREATE USER '${MysqlUser}'@'%' IDENTIFIED BY '${MysqlPass}';" | mysql 
+          echo "GRANT ALL PRIVILEGES ON %(MysqlDb).* TO '${MysqlUser}'@'%' WITH GRANT OPTION " | mysql
+      Tags:
+        - Key: Name
+          Value: SshOverSsmMysqlInstance
+
+  SshOverSsmInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      InstanceProfileName: SshOverSsmInstanceProfile
+      Path: /
+      Roles: 
+       - !Ref SshOverSsmInstanceRole
+
+  SshOverSsmInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SshOverSsmInstanceRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /  
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+
+Outputs:
+  Bastion:
+    Description: Instance ID for bastion host.
+    Value: !Ref SshOverSsmBastionInstance
+  BastionIp:
+    Description: Private IP of bastion host.
+    Value: !GetAtt SshOverSsmBastionInstance.PrivateIp
+  Mysql:
+    Description: Instance ID for mysql host.
+    Value: !Ref SshOverSsmMysqlInstance
+  MysqlIp:
+    Description: Privata IP mysql host.
+    Value: !GetAtt SshOverSsmMysqlInstance.PrivateIp
+  MysqlConnectionCommand:
+    Description: "Connection string for mysql instance"
+    Value: !Sub "mysql --protocol TCP -h localhost -P 3306 -u ${MysqlUser} -p ${MysqlDb}"
+  MysqlConnectionPassword:
+    Description: Password for test user
+    Value: !Sub "${MysqlPass}"
+  MysqlSslForward:
+    Description: SSH forwarding command
+    Value: !Sub "ssh -F ./ssh_config -L 3306:${SshOverSsmMysqlInstance.PrivateIp}:3306 ${SshOverSsmBastionInstance}"
+  DockerCommand:
+    Description: Invoke phpmyadmin container. See https://hub.docker.com/r/phpmyadmin/phpmyadmin/
+    Value: docker run --rm --name myadmin -d -e PMA_ARBITRARY=1 -p 8080:80 phpmyadmin
