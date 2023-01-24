@@ -56,9 +56,9 @@ Resources:
           yum install -y mariadb mariadb-server
           systemctl enable mariadb
           systemctl start mariadb
-          echo "CREATE DATABASE ${MysqlDb};"
+          echo "CREATE DATABASE ${MysqlDb};" | mysql
           echo "CREATE USER '${MysqlUser}'@'%' IDENTIFIED BY '${MysqlPass}';" | mysql 
-          echo "GRANT ALL PRIVILEGES ON %(MysqlDb).* TO '${MysqlUser}'@'%' WITH GRANT OPTION " | mysql
+          echo "GRANT ALL PRIVILEGES ON ${MysqlDb}.* TO '${MysqlUser}'@'%' WITH GRANT OPTION;" | mysql
       Tags:
         - Key: Name
           Value: SshOverSsmMysqlInstance
