@@ -2,6 +2,8 @@
 
 Demo of tunneling magic to connect to a database in a private subnet in AWS using SSM and SSH over SSM tunneling.
 
+![architecture](architecture.png)
+
 ## POC
 
 ### Create ssh key pair for ec2-user on bastion
