@@ -1,8 +1,22 @@
-# poc-phpmyadmin-over-ssh-over-ssm
+# Connect to database in AWS private subnet without VPC
 
-Demo of tunneling magic to connect to a database in a private subnet in AWS using SSM and SSH over SSM tunneling.
+Demonstrate the use of tunneling connect from a remote user workstation to a database in a private subnet in Amazon Web Services (AWS) using using Systems Manager (SSM) and Secure Shell (SSH) with SSH over SSM tunneling. We use phpMyAdmin in this example as this is a common ask for customers migrating from a cPanel solution to AWS.
 
 ![architecture](architecture.png)
+
+NOTE: You may find VPN, e.g. using AWS ClientVPN or OpenVPN, or AWS Verified Access to be better solutions to this problem.
+
+NOTE: Operational best practices suggest no manual changes should be allowed to production databases so please ensure that you don't use this as part of production operation workflows.
+
+## Licence and Warranty
+
+MIT No Attribution
+
+Copyright 2022 Rudolf Potucek
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## POC
 
@@ -116,6 +130,11 @@ Browse to https://localhost:8080 and in the web interface enter `host.docker.int
 ![phpmyadmin](phpmyadmin1.png)
 
 Select "Log in" and you have access to your database in AWS via phpMyAdmin. 
+
+## Alternatives
+
+* Use a VPN
+* Use AWS Verified Access
 
 ## Extensions
 
